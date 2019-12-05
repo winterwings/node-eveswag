@@ -1,0 +1,32 @@
+{
+  "name": "eveswag",
+  "version": "0.1.0",
+  "description": "Error tolerant, status aware EVE Swagger Interface generator",
+  "license": "MIT",
+  "main": "eveswag.js",
+  "author": "Snowly <airship@outlook.com>",
+  "contributors": [
+    {
+      "name": "Snowly (Shyaltii in EVE)",
+      "email": "airship@outlook.com"
+    }
+  ],
+  "url": "https://gitlab.com/airships/node-eveswag",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@gitlab.com:airships/node-eveswag.git"
+  },
+  "bugs": {
+    "url": "https://gitlab.com/airships/node-eveswag/issues"
+  },
+  "scripts": {
+    "lint": "eslint --ignore-path .gitignore . || exit 0"
+  },
+  "dependencies": {
+    "request": "^2.88.0"
+  },
+  "optionalDependencies": {},
+  "devDependencies": {
+    "eslint": "^6.6.0"
+  }
+}
