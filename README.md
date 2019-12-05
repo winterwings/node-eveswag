@@ -1,6 +1,6 @@
 # eveswag - EVE Swagger Interface generator
 
-Originally developed for [LittleUFO](https://gitlab.com/airships/ufo), but departed to be stand-alone, this module offers:
+Originally developed for [LittleUFO](https://gitlab.com/airships/ufo) as a `swagger-client` replacement, but departed to be stand-alone, this module offers:
 * **Async**  
   Say goodbye to callback hell.
 * **Lightweight**  
@@ -28,7 +28,7 @@ Install with
 
 Usage example:
 ```js
-const eveswag = require("./eveswag");
+const eveswag = require("eveswag");
 
 // Create an instance with your project and your own name, as ESI recommends
 const esi = new eveswag({
@@ -80,7 +80,7 @@ await eveswag.apis.Category.operation_id(params, token, scopes)
 ...where:
 * `params` - Object with parameters to send to ESI
 * `token` - If endpoint requires a scope, provide an access token
-* `scopes` - Scopes list for that token
+* `scopes` - Token scopes in an array or a string list
 
 #### list
 Categorised API list with scopes and their current status.

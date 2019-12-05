@@ -236,15 +236,24 @@ class eveswag {
      * @param {object} paramap Operation parameters map
      * @param {object} params Requested parameters
      * @param {string} token Auth token
-     * @param {string} scopes Token scopes in space separated list
+     * @param {string|array} scopes Token scopes in an array or a string list
      * @returns Server response
      */
     async _callEndpoint(_this, op, method, path, scope=null, paramap=null, params=null, token=null, scopes=null) {
         let problem = await _this.health(op);
+
         if (!_this.allowred && problem > 1)
             throw { err: "esi_status", error: "Status " + (problem === 1 ? "yellow" : "red") };
-        if (scopes && scopes.indexOf(scope) === -1)
-            throw { err: "scope_missing", error: "Scope " + scope + " is missing from token" };
+        if (scopes) {
+            let ok = false;
+            if (typeof scopes === "string")
+                ok = scopes.indexOf(scope) > -1;
+            else
+                ok = ok.includes(scope);
+            if (!ok)
+                throw { err: "scope_missing", error: "Scope " + scope + " is missing from token" };
+        }
+
         let qry = {
             proxy: _this.proxy,
             method,
@@ -252,17 +261,20 @@ class eveswag {
             headers: { "User-Agent": _this.useragent },
             json: true
         };
+
         if (!token && params && params.token) { // legacy
             token = params.token;
             delete params.token;
         }
         if (token && scope)
             qry.headers["Authorization"] = "Bearer " + token;
+
         let prm = {
             datasource: _this.datasource,
             "Accept-Language": _this.language,
             ...params
         };
+
         if (paramap) {
             let qs = [];
             for (let key in paramap) {
