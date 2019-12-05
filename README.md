@@ -1,6 +1,6 @@
 # eveswag - EVE Swagger Interface generator
 
-Originally developed for [LittleUFO](https://gitlab.com/airships/ufo), but departed as a stand-alone module, this module offers:
+Originally developed for [LittleUFO](https://gitlab.com/airships/ufo), but departed to be stand-alone, this module offers:
 * **Async**  
   Say goodbye to callback hell.
 * **Lightweight**  

@@ -78,7 +78,7 @@ class eveswag {
             url: this.host + "/" + this.version + "/swagger.json?datasource=" + this.datasource,
             json: true
         });
-        this.load(spec);
+        this.loadScheme(spec.body);
     }
 
     /**
@@ -239,7 +239,7 @@ class eveswag {
      * @param {string} scopes Token scopes in space separated list
      * @returns Server response
      */
-    async _callendpoint(_this, op, method, path, scope=null, paramap=null, params=null, token=null, scopes=null) {
+    async _callEndpoint(_this, op, method, path, scope=null, paramap=null, params=null, token=null, scopes=null) {
         let problem = await _this.health(op);
         if (!_this.allowred && problem > 1)
             throw { err: "esi_status", error: "Status " + (problem === 1 ? "yellow" : "red") };
