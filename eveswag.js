@@ -10,7 +10,10 @@ class eveswag {
     // https://esi.evetech.net/ https://docs.esi.evetech.net/
     /**
      * EVE Swagger Interface generator.
-     * After new instance is created, call either loadFile(file), loadFromRemote() or loadScheme(scheme), and then use this.apis.Category.operation_name() to call an endpoint and this.list to see all endpoints mapping along with their required scopes and status.
+     * After new instance is created, call either loadFile(file), loadFromRemote() or loadScheme(scheme),
+     * and then use this.apis.Category.operation_name() to call an endpoint,
+     * this.list to see all endpoints mapping along with their required scopes and status,
+     * and this.info to see the scheme information.
      * @param {object} cfg Configuration
      * @param {string} cfg.useragent ESI-compliant user agent
      * @param {string|boolean} [cfg.proxy] String or boolean (to use environment) (default: null)
@@ -19,18 +22,18 @@ class eveswag {
      * @param {string} [cfg.version] ESI specs version (default: "latest")
      * @param {string} [cfg.datasource] Datasource (default: "tranquility")
      * @param {string} [cfg.language] Language (default: "en-us")
-     * @param {object} [cfg.logger] Object with two console.log-like functions: { log: simple log, logw: log with writing to a file } (default: fallback to console.log)
-     * @param {function} [cfg.report] Function to report calls into: report("direct", "get_status") or report("error", "get_status"), because this class has a fallback mechanism and may retry some failed calls
+     * @param {object} [cfg.log] console.log-like function with first parameter meaning the type of a message - "info" or "warning" (default: fallback to console.log)
+     * @param {function} [cfg.report] Function to report calls into: report("direct", "get_status") or report("error", "get_status"), because this class has a fallback mechanism and may retry some failed calls (default: stub)
+     * @throws {object} { err: "error|server|esi_status|scope_missing", error: "Error description" }
      */
     constructor(cfg={}) {
         if (!cfg.useragent)
-            throw new Error("useragent must be specified");
+            throw { err: "error", error: "useragent must be specified" };
 
-        this.logger = cfg.logger || {
-            log: console.log,
-            logw: console.log
+        this.log = cfg.log || function (type, ...args) {
+            console.log.apply(this, ["[" + type + "]", ...args]);
         };
-        this.report = cfg.report || function(){}; // stub
+        this.report = cfg.report || function(){};
 
         this.useragent = cfg.useragent + " (eveswag)";
         this.proxy = cfg.proxy || null;
@@ -41,6 +44,11 @@ class eveswag {
         this.allowred = !!cfg.allowred;
 
         this.host = cfg.host || "https://esi.evetech.net";
+
+        this.lockuntil = null;
+        this.info = Object.freeze({});
+        this.list = Object.freeze({});
+        this.apis = Object.freeze({});
     }
 
     /**
@@ -72,7 +80,7 @@ class eveswag {
      * Downloads specs from web and calls this.load with them.
      */
     async loadFromRemote() {
-        this.logger.log("Loading ESI specs from remote resource...");
+        this.log("info", "Loading ESI specs from a remote resource...");
         let spec = await this._requestPromise({
             method: "GET",
             url: this.host + "/" + this.version + "/swagger.json?datasource=" + this.datasource,
@@ -93,7 +101,6 @@ class eveswag {
 
         this.esihealth = 0;
 
-        this.info = scheme.info;
         this.host = scheme.schemes.includes("https") ? "https" : "http"; // idk
         this.host += "://" + scheme.host;
 
@@ -110,12 +117,12 @@ class eveswag {
                 let route = {};
                 // check if method was implemented
                 if (!["get", "post", "put", "delete"].includes(method))
-                    this.logger.log(op, "has an unexpected method!");
+                    this.log("info", op, "has an unexpected method!");
                 // save required token scope if any
                 if (cur.security && cur.security.length > 0 && cur.security[0].evesso) {
                     route.scope = cur.security[0].evesso[0];
                     if (cur.security[0].evesso.length > 1) // notify if ccp will change something about scopes
-                        this.logger.log(op, "has an unexpected number of scopes!", cur.security[0].evesso);
+                        this.log("info", op, "has an unexpected number of scopes!", cur.security[0].evesso);
                 }
                 // create parameters map
                 if (cur.parameters && cur.parameters.length > 0) {
@@ -123,7 +130,7 @@ class eveswag {
                     for (let i = 0; i < cur.parameters.length; i++) {
                         if (cur.parameters[i].hasOwnProperty("$ref")) {
                             if (cur.parameters[i]["$ref"].indexOf("#/parameters/") !== 0) {
-                                this.logger.log(cur.parameters[i]["$ref"], "is an unexpected reference!");
+                                this.log("info", cur.parameters[i]["$ref"], "is an unexpected reference!");
                                 continue;
                             }
                             cur.parameters[i] = scheme.parameters[cur.parameters[i]["$ref"].substring(13)];
@@ -133,9 +140,9 @@ class eveswag {
                             location: cur.parameters[i].in
                         };
                         if (!["header", "path", "query", "body"].includes(cur.parameters[i].in))
-                            this.logger.log("Unexpected parameter location:", cur.parameters[i].in);
+                            this.log("info", "Unexpected parameter location:", cur.parameters[i].in);
                         // if (cur.parameters[i].in === "body" && op !== "post")
-                        //     this.logger.log("Body parameter in a " + op + " request?");
+                        //     this.log("info", "Body parameter in a " + op + " request?");
                     }
                 }
                 // create endpoint function
@@ -150,7 +157,7 @@ class eveswag {
             }
         }
 
-        // sort, build and expose things
+        // sort and build
         let cats = Object.keys(apis);
         cats.sort();
         let xapis = {}, xlist = {};
@@ -166,8 +173,14 @@ class eveswag {
                 xlist[cat][op] = this._createDetails(this, apis, cat, op);
             }
         }
-        this.apis = Object.freeze(xapis);
+
+        // expose all the things
+        this.info = Object.freeze(scheme.info);
         this.list = Object.freeze(xlist);
+        this.apis = Object.freeze(xapis);
+
+        // reset lock just in case
+        this.lockuntil = null;
 
         // request a health update
         this.healthData = {};
@@ -298,7 +311,7 @@ class eveswag {
                         break;
                     case "body":
                         if (qry.body)
-                            _this.logger.log("Body was set multiple times for " + op + "/" + key + ". Wth?");
+                            _this.log("info", "Body was set multiple times for " + op + "/" + key + ". Wth?");
                         qry.body = prm[key];
                         break;
                 }
@@ -309,9 +322,37 @@ class eveswag {
         //self.logger.log(qry.url);
         let res = await _this._requestAttempt(op, qry);
         if (res.headers.warning)
-            _this.logger.logw("(note) " + op + ":", res.headers.warning, "See https://github.com/esi/esi-issues/blob/master/changelog.md for details");
+            _this.log("warning", "(note) " + op + ":", res.headers.warning, "See https://github.com/esi/esi-issues/blob/master/changelog.md for details");
         //self.logger.log(res);
         return res;
+    }
+
+    /**
+     * @private
+     * ESI error limit checker. If you hit the error limit, everything will be softlocked for some time.
+     * @param {object} resp Server response object. Won't throw error if it is specified
+     * @param {string} err Error message
+     */
+    _checkErrorCount(resp=null, err=null) {
+        let errmsg = "Too many errors. ESI is locked for";
+        if (err && err.indexOf(errmsg) > -1)
+            return;
+
+        if (resp && resp.headers &&
+            resp.headers.hasOwnProperty("x-esi-error-limit-remain")
+            && /^\d+$/.test(resp.headers["x-esi-error-limit-remain"])
+            && resp.headers["x-esi-error-limit-remain"] * 1 <= 2
+        )
+            this.lockuntil = this._now() + resp.headers["x-esi-error-limit-reset"] * 60;
+        if (err && err.indexOf("This software has exceeded the error limit for ESI") > -1)
+            this.lockuntil = this._now() + 60;
+
+        if (this.lockuntil && this.lockuntil > this._now()) {
+            if (!resp)
+                throw { err: "error", error: errmsg + " " + Math.ceil((this.lockuntil - this._now()) / 60) + " min" };
+        } else {
+            this.lockuntil = null;
+        }
     }
 
     /**
@@ -327,25 +368,31 @@ class eveswag {
     async _requestAttempt(op, opts, retry=3, _retry=0) {
         let resp;
         try {
+            this._checkErrorCount();
             this.report("direct", op);
             resp = await this._requestPromise(opts);
-            // display page count:
-            // if (resp.headers.hasOwnProperty("x-pages"))
-            //     this.logger.log(resp.headers["x-pages"]);
-            // 'x-esi-error-limit-remain': '99',
-            // 'x-esi-error-limit-reset': '31',
+            this._checkErrorCount(resp);
         } catch (err) {
-            this.report("error", op);
-            let error = err && err.error ? err.error : JSON.stringify(err);
+            if (!err || !err.err || err.err !== "error")
+                this.report("error", op);
+            let error = {
+                err: err && err.err ? err.err : "error",
+                error: (err && err.error ? err.error : JSON.stringify(err))
+                    + (err && err.headers ? " [Error limit left: " + err.headers["x-esi-error-limit-remain"] + "]" : "")
+            };
+
+            this._checkErrorCount(null, error.error);
 
              // invalid requests:
-            if (error.indexOf("Invalid body") > -1
-                || error.indexOf("failed to coerce value") > -1)
-                throw err;
+            if (error.error.indexOf("Invalid body") > -1
+                || error.error.indexOf("failed to coerce value") > -1)
+                throw error;
 
             // old star_id bug https://github.com/esi/esi-issues/issues/532
-            if (error.indexOf("'star_id'") > -1) {
-                this.logger.logw("TODO: Revise star_id bug:", JSON.stringify(err));
+            // the issue was closed in winter'18, but I still encountered it in summer'18
+            // NOTE: the solution is legacy of a previously used swagger-client, so it might not work well
+            if (error.error.indexOf("'star_id'") > -1) {
+                this.log("warning", "TODO: Revise star_id bug:", JSON.stringify(err)); // if it will ever happen again
                 return {
                     headers: { expires: this._now() + 1*60*60 }, // fake the expiration date
                     body: err.response.body.response
@@ -355,25 +402,27 @@ class eveswag {
             if (!_retry)
                 _retry = 0;
             if (_retry >= retry) // number of retries
-                throw err;
+                throw error;
 
             // if it's a timeout or error
-            if (error.indexOf("Timeout") > -1
-                || error.indexOf("ENOTFOUND") > -1
-                || error.indexOf("ECONNRESET") > -1 // TODO: there's also ECONNsomethingelse
-                || error.indexOf("EAI_AGAIN") > -1
-                || error.indexOf("Bad Gateway") > -1
-                || error.indexOf("Service Unavailable") > -1
-                || error.indexOf("Failed to fetch access data") > -1
-                || error.indexOf("no JWK available for datasource") > -1 // SSO error
+            if (error.error.indexOf("Timeout") > -1
+                || error.error.indexOf("ENOTFOUND") > -1
+                || error.error.indexOf("ECONNRESET") > -1 // TODO: there's also ECONNsomethingelse
+                || error.error.indexOf("EAI_AGAIN") > -1
+                || error.error.indexOf("Bad Gateway") > -1
+                || error.error.indexOf("Service Unavailable") > -1
+                || error.error.indexOf("Failed to fetch access data") > -1
+                || error.error.indexOf("no JWK available for datasource") > -1 // nasty SSO error. it may or may not go away on a next call
             ) {
-                //this.logger.log("Timeout/fail on " + op + ". Retrying...", _retry);
+                //this.log("info", "Timeout/fail on " + op + ". Retrying...", _retry);
                 if (_retry > 0)
                     await this._sleep(_retry * 500);
-                return await this._requestAttempt(op, opts, _retry++);
+                if (error.error.indexOf("no JWK available for datasource") > -1)
+                    _retry = retry; // give it only one retry
+                return await this._requestAttempt(op, opts, retry, _retry++);
             }
 
-            throw err;
+            throw error;
         }
         return resp;
     }
@@ -447,11 +496,11 @@ class eveswag {
             if (res)
                 res = res.body;
             if (res && typeof res !== "object") {
-                this.logger.log("ESI health parse error");
+                this.log("info", "ESI health parse error");
                 res = null;
             }
         } catch (err) {
-            this.logger.log("ESI health fetch error");
+            this.log("info", "ESI health fetch error");
             res = null;
         }
         if (!res) {
@@ -459,7 +508,7 @@ class eveswag {
             res = {};
             this.esihealth = 100;
             this.healthDate = 0; // will force retry on a next call
-            this.logger.log("ESI health is unknown");
+            this.log("info", "ESI health is unknown");
             return;
         }
         this.healthData = {};
@@ -479,7 +528,7 @@ class eveswag {
                 this.esihealth += 0.5 * this.healthData[res[i].func];
                 // if (this.healthData[res[i].func])
                 //     this.esihealth += 1;
-                //this.logger.log(this.healthData[res[i].func], res[i].category, res[i].func);
+                //this.log("info", this.healthData[res[i].func], res[i].category, res[i].func);
             }
             this.esihealth = 100 - Math.round(this.esihealth / cnt * 100);
             if (this.esihealth !== this.esihealth)
@@ -487,7 +536,7 @@ class eveswag {
         } else {
             this.healthDate = 0;
         }
-        this.logger.log("ESI health is " + this.esihealth + "%");
+        this.log("info", "ESI health is " + this.esihealth + "%");
     }
 }
 

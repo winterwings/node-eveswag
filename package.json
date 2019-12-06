@@ -1,6 +1,6 @@
 {
   "name": "eveswag",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Error tolerant, status aware EVE Swagger Interface (ESI) generator",
   "license": "MIT",
   "main": "eveswag.js",

@@ -6,13 +6,13 @@ Originally developed for [LittleUFO](https://gitlab.com/airships/ufo) as a `swag
 * **Lightweight**  
   One file, one prerequisite.
 * **No limits in tokens**  
-  Aimed towards big projects, every scoped call can take its own auth token.
+  Aimed towards big projects with lots of users, every auth protected call can take its own auth token and scopes list.
 * **Scopes**  
-  Every call gets checked against provided list of scopes, so you don't have to worry about it.
+  Every auth protected call gets checked against provided list of scopes, so you don't have to worry about it.
 * **Endpoints status**  
   You can always view the status of endpoints without delay.
 * **Error tolerance**  
-  It can avoid some errors often happening on ESI by making multiple attempts where it is safe (bad gateway, timeout, etc), and presents errors in a readable format as possible.
+  It can avoid many known errors often happening on ESI by making multiple attempts where it is safe (bad gateway, timeout, etc), and presents errors in a readable format as possible.
 * **Avoidance of endpoints with red status**  
   As an optional feature, it helps you to deal with problematic endpoints.
 * **Endpoint upgrade notifications**  
@@ -56,10 +56,18 @@ Provide config as an object with:
 * `version` - ESI specs version *(default: "latest")*
 * `datasource` - Datasource *(default: "tranquility")*
 * `language` - Language *(default: "en-us")*
-* `logger` - Object with two console.log-like functions: `{ log: simple log, logw: log with writing to a file }` *(default: fallback to console.log)*
+* `log` - console.log-like function with first parameter meaning the type of a message - "info" or "warning" *(default: fallback to console.log)*
 * `report` - Function to report calls into like `report("direct", "get_status")` or `report("error", "get_status")`, because this class has a fallback mechanism and may retry some failed calls
 
 All of these may be modified later as a class properties.
+
+All of the errors thrown as an object:
+```json
+{
+    err: "error" | "server" | "esi_status" | "scope_missing",
+    error: "Error description"
+}
+```
 
 #### loadFile(file)
 Loads ESI specs from a file.
@@ -69,6 +77,9 @@ Loads ESI specs frim a web.
 
 #### loadScheme(scheme)
 Loads specs from a string or an object.
+
+#### info
+Object with scheme information.
 
 #### apis
 Categorised API to call to.
@@ -81,6 +92,16 @@ await eveswag.apis.Category.operation_id(params, token, scopes)
 * `params` - Object with parameters to send to ESI
 * `token` - If endpoint requires a scope, provide an access token
 * `scopes` - Token scopes in an array or a string list
+
+It returns full response object, flavoured with error parameters if any (see constructor description).  
+Most likely you will receive something like this:
+```json
+{
+    headers: { headers object },
+    body: { json reponse },
+    ...and some more things
+}
+```
 
 #### list
 Categorised API list with scopes and their current status.
