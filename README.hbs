@@ -1,0 +1,83 @@
+# [eveswag](https://gitlab.com/airships/node-eveswag) - EVE Swagger Interface
+
+Originally developed for [LittleUFO](https://gitlab.com/airships/ufo) as a `swagger-client` replacement, but departed to be stand-alone, this module offers:
+* **No limits in tokens**  
+  Aimed towards big projects with lots of users, every auth-protected call can take its own auth token and scopes list.
+* **Scopes**  
+  Every auth-protected call is checked against provided list of scopes, so you don't have to worry about it.
+* **Endpoints status**  
+  You can always view status of the endpoints without delay.
+* **Error tolerance**  
+  It can avoid many known errors often happening on ESI by making multiple attempts where it is safe (bad gateway, timeout, etc), and presents errors in a readable format.
+* **Avoidance of endpoints with yellow/red status**  
+  As an optional feature, it helps you to deal with problematic endpoints.
+* **Endpoint upgrade notifications**  
+  When some endpoint will soon be upgraded or deprecated, module notify about it in a log.
+* **Async**  
+  Say goodbye to callback hell.
+* **Lightweight**  
+  One file, one prerequisite.
+
+And, as it was said before, this module is a part of a big active project, so it will receive a constant updates.
+
+
+## Installation
+
+Install with  
+`npm install eveswag --production` (to skip development dependencies)
+
+For development purposes:  
+`npm install eveswag`
+
+
+See usage example in a constructor description.
+
+
+# Reference
+
+{{>main}}
+
+
+## Changelog
+
+#### 0.2.0
+Refactoring, consistency, jsDoc.
+
+New:
+* `cfg.allowYellow`
+* `cfg.statusRefresh`
+
+Breaking changes:
+* `cfg.useragent` renamed to `cfg.userAgent`
+* `cfg.allowred` renamed to `cfg.allowRed`
+* `loadFromRemote` renamed to `loadRemote`
+* `log` is no longer object but a function
+
+
+#### 0.1.2
+Improved error detection and implemented ESI error reader with a softlock.
+
+
+#### 0.1.1
+On requests, `scopes` can take an array.
+
+
+#### 0.1.0
+Initial release.
+
+
+## TODO
+
+* Option to flatten `apis` and `list` (w/o categories, only operation ids)
+
+Transfer from LittleUFO:
+* Cache handling
+* Notifications parser to natively present a baked json instead of yaml
+* SSO pipeline maybe?
+
+
+## Contacts
+
+Discord: Rainicorn#4886  
+EVE: Shyaltii  
+ISK donations appreciated ♥

@@ -1,6 +1,6 @@
 {
   "name": "eveswag",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Error tolerant, status aware EVE Swagger Interface (ESI) generator",
   "license": "MIT",
   "main": "eveswag.js",
@@ -20,13 +20,15 @@
     "url": "https://gitlab.com/airships/node-eveswag/issues"
   },
   "scripts": {
-    "lint": "eslint --ignore-path .gitignore . || exit 0"
+    "lint": "eslint --ignore-path .gitignore . || exit 0",
+    "docs": "jsdoc2md --files eveswag.js --template README.hbs > README.md || exit 0"
   },
   "dependencies": {
     "request": "^2.88.0"
   },
   "optionalDependencies": {},
   "devDependencies": {
-    "eslint": "^6.6.0"
+    "eslint": "^6.6.0",
+    "jsdoc-to-markdown": "^5.0.3"
   }
 }
