@@ -298,6 +298,9 @@ Thrown error
 
 ## Changelog
 
+#### 0.2.1
+Scopes detection mistake fix.
+
 #### 0.2.0
 Refactoring, consistency, jsDoc.
 

@@ -461,9 +461,11 @@ async function callEndpoint(_this, op, method, path, scope=null, paramap=null, p
     if (scopes) {
         let ok = false;
         if (typeof scopes === "string")
-            ok = scopes.indexOf(scope) > -1;
+            ok = (" " + scopes + " ").indexOf(" " + scope + " ") > -1;
+        else if (typeof scopes === "object" && Array.isArray(scopes))
+            ok = scopes.includes(scope);
         else
-            ok = ok.includes(scope);
+            ok = true; // fallback on unknown data provided
         if (!ok)
             throw { err: "scope_missing", error: "Scope " + scope + " is missing from token" };
     }
